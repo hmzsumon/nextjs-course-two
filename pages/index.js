@@ -1,4 +1,7 @@
+import Head from 'next/head';
+import { MongoClient } from 'mongodb';
 import MeetupList from '../components/meetups/MeetupList';
+
 const DUMMY_MEETUPS = [
 	{
 		id: 'm1',
@@ -17,7 +20,42 @@ const DUMMY_MEETUPS = [
 		description: 'This is a Second meetup',
 	},
 ];
-function HomePage() {
-	return <MeetupList meetups={DUMMY_MEETUPS} />;
+function HomePage({ meetups }) {
+	return (
+		<>
+			<Head>
+				<title>Next Meetup</title>
+				<meta
+					name='description'
+					content='Browser a huge list of highly active Next meetup!'
+				/>
+			</Head>
+			<MeetupList meetups={meetups} />
+		</>
+	);
 }
+export const getStaticProps = async () => {
+	// fetch data from apt
+	const client = await MongoClient.connect(
+		'mongodb+srv://nextjsdb:nextjsdb@cluster0.heiyh.mongodb.net/meetups?retryWrites=true&w=majority'
+	);
+	const db = client.db();
+	const meetupCollection = db.collection('meetups');
+
+	const meetups = await meetupCollection.find().toArray();
+
+	client.close();
+
+	return {
+		props: {
+			meetups: meetups.map((meetup) => ({
+				title: meetup.title,
+				address: meetup.address,
+				image: meetup.image,
+				id: meetup._id.toString(),
+			})),
+		},
+		revalidate: 10,
+	};
+};
 export default HomePage;
